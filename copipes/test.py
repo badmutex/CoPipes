@@ -2,7 +2,7 @@ from textwrap import dedent
 
 from nose import tools
 
-from copipes import coroutine, pipeline
+from copipes import coroutine, pipeline, null
 
 
 @coroutine
@@ -37,6 +37,10 @@ def split(even, odd):
         item = yield
         next = odd if item % 2 else even
         next.send(item)
+
+
+def null_test():
+    tools.ok_(not null)
 
 
 def coroutine_preserves_name_and_docstring_test():

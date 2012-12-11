@@ -4,13 +4,68 @@ from os import linesep
 from sys import version_info
 
 
-__all__ = ['coroutine', 'pipeline']
+__all__ = ['coroutine', 'pipeline', 'null']
 __version__ = '0.1'
 __author__ = 'Dmitry Vakhrushev <self@kr41.net>'
 __license__ = 'BSD'
 
 
 is2 = version_info[0] == 2
+
+
+class _null(object):
+    """
+    A fake coroutine, which does nothing
+
+    Is useful as pipeline end point or default value of next worker in
+    coroutine definition:
+
+    ..  code-block:: pycon
+
+        >>> @coroutine
+        ... def increment(next=null):
+        ...     while True:
+        ...         item = yield
+        ...         next.send(item + 1)
+
+    Is converted to boolean as ``False``:
+
+    ..  code-block:: pycon
+
+        >>> bool(null)
+        False
+        >>> next = null or increment
+        >>> next
+        increment
+
+    """
+
+    def __call__(self, *args, **kw):
+        """ Mimics to coroutine initialization """
+        return self
+
+    def __nonzero__(self):
+        """ Python 2.x boolean representation """
+        return False
+
+    def __bool__(self):
+        """ Python 3.x boolean representation """
+        return False
+
+    def __repr__(self):
+        """ String representation """
+        return 'null'
+
+    def send(self, *args, **kw):
+        """ Mimics to coroutine processing """
+        pass
+
+    def close(self):
+        """ Mimics to coroutine termination """
+        pass
+
+
+null = _null()
 
 
 class coroutine(object):
@@ -51,8 +106,7 @@ class pipeline(object):
         self.pipe = []
         self.connect(*workers)
 
-    def __call__(self, next=None):
-        next = next or null()
+    def __call__(self, next=null):
         for worker in reversed(self.pipe):
             next = worker(next)
         return next
@@ -96,9 +150,3 @@ class fork(object):
             result.append('    -->')
             result.extend(' ' * 8 + wr for wr in repr(pipe).split(linesep))
         return linesep.join(result)
-
-
-@coroutine
-def null(*args):
-    while True:
-        yield
