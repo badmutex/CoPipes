@@ -6,11 +6,11 @@ from copipes import coroutine, pipeline, null
 
 
 @coroutine
-def collect(to, next):
+def collect(target, next):
     """ Connects pipeline to queue """
     while True:
         item = yield
-        to.append(item)
+        target.append(item)
         next.send(item)
 
 
@@ -41,6 +41,11 @@ def split(even, odd):
 
 def null_test():
     tools.ok_(not null)
+    tools.ok_(null() is null)
+
+    # Following code should not raise an exception
+    null.send(1, 2, 3)
+    null.close()
 
 
 def coroutine_preserves_name_and_docstring_test():
@@ -54,7 +59,7 @@ def parametrized_coroutine_test():
     add_5 = add.params(5)
     add_3 = add.params(3)
 
-    # Parametrized provides readable representation
+    # Parametrized coroutine provides readable representation
     tools.eq_(repr(add_5), 'add.params(5)')
     tools.eq_(repr(add_3), 'add.params(3)')
 

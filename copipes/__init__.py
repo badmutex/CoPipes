@@ -15,10 +15,10 @@ is2 = version_info[0] == 2
 
 class _null(object):
     """
-    A fake coroutine, which does nothing
+    A fake coroutine, which does nothing.
 
-    Is useful as pipeline end point or default value of next worker in
-    coroutine definition:
+    The ``null`` is useful as pipeline end point or default value of next
+    worker in coroutine definition:
 
     ..  code-block:: pycon
 
@@ -28,7 +28,7 @@ class _null(object):
         ...         item = yield
         ...         next.send(item + 1)
 
-    Is converted to boolean as ``False``:
+    Also it's converted to boolean as ``False``:
 
     ..  code-block:: pycon
 
@@ -69,6 +69,37 @@ null = _null()
 
 
 class coroutine(object):
+    """
+    Decorator turns callable to coroutine.
+
+    Examples::
+
+    ..  code-block:: pycon
+
+        >>> @coroutine
+        ... def increment(next=null):
+        ...     while True:
+        ...         item = yield
+        ...         next.send(item + 1)
+
+        >>> @coroutine
+        ... def collect(target, next=null):
+        ...     while True:
+        ...         item = yield
+        ...         target.append(item)
+        ...         next.send(item)
+
+        >>> target = []
+        >>> inc = increment(collect(target))    # Init coroutines
+
+        >>> inc.send(1)
+        >>> inc.send(2)
+        >>> inc.send(3)
+
+        >>> target
+        [2, 3, 4]
+
+    """
 
     def __init__(self, func):
         self.func = func
@@ -77,6 +108,7 @@ class coroutine(object):
         update_wrapper(self, func)
 
     def __call__(self, *args, **kw):
+        """ Returns initialized coroutine """
         pargs = self.args + args
         kwargs = self.kw.copy()
         kwargs.update(kw)
@@ -86,6 +118,7 @@ class coroutine(object):
         return c
 
     def __repr__(self):
+        """ Returns string representation """
         params = [repr(a) for a in self.args]
         params.extend('{0!s}={1!r}'.format(k, v) for k, v in self.kw.items())
         params = ', '.join(params)
@@ -93,7 +126,38 @@ class coroutine(object):
                '{0}.params({1})'.format(self.__name__, params)
 
     def params(self, *args, **kw):
-        """ Returns a parametrized copy of coroutine """
+        """
+        Returns a parametrized copy of coroutine.
+
+        Examples:
+
+        ..  code-block:: pycon
+
+            >>> @coroutine
+            ... def increment(next=null):
+            ...     while True:
+            ...         item = yield
+            ...         next.send(item + 1)
+
+            >>> @coroutine
+            ... def collect(target, next=null):
+            ...     while True:
+            ...         item = yield
+            ...         target.append(item)
+            ...         next.send(item)
+
+            >>> target = []
+            >>> collector = collect.params(target)
+            >>> inc = increment(collector())    # Init coroutines
+
+            >>> inc.send(1)
+            >>> inc.send(2)
+            >>> inc.send(3)
+
+            >>> target
+            [2, 3, 4]
+
+        """
         p = self.__class__(self.func)
         p.args = args
         p.kw = kw
@@ -101,17 +165,20 @@ class coroutine(object):
 
 
 class pipeline(object):
+    """ Coroutine pipeline. """
 
     def __init__(self, *workers):
         self.pipe = []
         self.connect(*workers)
 
     def __call__(self, next=null):
+        """ Returns initialized coroutine pipeline """
         for worker in reversed(self.pipe):
             next = worker(next)
         return next
 
     def __repr__(self):
+        """ Returns string representation """
         return linesep.join(repr(worker) for worker in self.pipe) or \
                '<empty pipeline>'
 
@@ -125,7 +192,7 @@ class pipeline(object):
     def fork(self, worker, pipes_count):
         pipes = tuple(pipeline() for i in range(pipes_count))
         yield pipes
-        self.connect(fork(worker, *pipes))
+        self.connect(_fork(worker, *pipes))
 
     def feed(self, source):
         p = self()
@@ -134,17 +201,24 @@ class pipeline(object):
         p.close()
 
 
-class fork(object):
+class _fork(object):
+    """
+    Forked coroutine pipeline is utility class.  You don't need to deal
+    with it directly, use :meth:`pipeline.fork` method.
+
+    """
 
     def __init__(self, worker, *pipes):
         self.worker = worker
         self.pipes = pipes
 
     def __call__(self, next):
+        """ Returns initialized forked pipeline """
         pipes = (pipe(next) for pipe in self.pipes)
         return self.worker(*pipes)
 
     def __repr__(self):
+        """ Returns string representation """
         result = [repr(self.worker) + ':']
         for pipe in self.pipes:
             result.append('    -->')
