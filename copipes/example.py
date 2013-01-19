@@ -8,17 +8,23 @@ Last file should not contain duplicate records.
 
 """
 
-import os
-import sys
-from io import StringIO
 from collections import namedtuple
+from io import StringIO
+from os.path import dirname, realpath
+from sys import path, version_info
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+path.append(dirname(dirname(realpath(__file__))))
 
 from copipes import coroutine, pipeline, null
 
 
-log = StringIO(u"""
+if version_info[0] == 2:
+    u = lambda s: unicode(s)    # NOQA
+else:
+    u = lambda s: s
+
+
+log = StringIO(u("""
     WARNING first  Warning message 1
     DEBUG   second Debug message 4
     INFO    third  Info message 1
@@ -44,7 +50,7 @@ log = StringIO(u"""
     WARNING third  Warning message 3
     WARNING second Warning message 5
     ERROR   first  Error message 3
-""")
+"""))
 
 
 @coroutine
@@ -97,9 +103,10 @@ def unique(next=null):
 
 @coroutine
 def save(file, next=null):
+    template = u('{0.level:7.7} {0.module:6.6} {0.message}\n')
     while True:
         record = yield
-        file.write(u'{0.level:7.7} {0.module:6.6} {0.message}\n'.format(record))
+        file.write(template.format(record))
         next.send(record)
 
 
