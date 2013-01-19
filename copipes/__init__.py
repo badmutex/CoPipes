@@ -259,7 +259,7 @@ class pipeline(object):
         self.pipe.append(null)
 
     @contextmanager
-    def fork(self, worker, pipes_count):
+    def fork(self, worker, *pipes):
         """
         Connect to pipeline forked coroutine.
 
@@ -360,9 +360,18 @@ class pipeline(object):
             collect.params([2, 0, 3, 1, 4, 2])
 
         """
-        pipes = tuple(pipeline() for i in range(pipes_count))
+        if isinstance(pipes[0], int):
+            pipe_count = pipes[0]
+            pipe_names = None
+        else:
+            pipe_count = len(pipes)
+            pipe_names = pipes
+        pipes = tuple(pipeline() for i in range(pipe_count))
         yield pipes
-        self.connect(_fork(worker, *pipes))
+        if pipe_names:
+            self.connect(_fork(worker, **dict(zip(pipe_names, pipes))))
+        else:
+            self.connect(_fork(worker, *pipes))
 
     def feed(self, source):
         """
@@ -384,18 +393,24 @@ class _fork(object):
 
     """
 
-    def __init__(self, worker, *pipes):
+    def __init__(self, worker, *pipes, **named_pipes):
         self.worker = worker
         self.pipes = pipes
+        self.named_pipes = named_pipes
 
     def __call__(self, next):
         """ Returns initialized forked pipeline """
         pipes = (pipe(next) for pipe in self.pipes)
-        return self.worker(*pipes)
+        named_pipes = dict((name, pipe(next)) for name, pipe
+                                              in self.named_pipes.items())
+        return self.worker(*pipes, **named_pipes)
 
     def __repr__(self):
         result = [repr(self.worker) + ':']
         for pipe in self.pipes:
             result.append('    -->')
+            result.extend(' ' * 8 + wr for wr in repr(pipe).split(linesep))
+        for name, pipe in self.named_pipes.items():
+            result.append('    {0} -->'.format(name))
             result.extend(' ' * 8 + wr for wr in repr(pipe).split(linesep))
         return linesep.join(result)

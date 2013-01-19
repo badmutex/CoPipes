@@ -104,6 +104,24 @@ def forked_pipeline_test():
     tools.eq_(odds, [11, 13])
 
 
+def forked_named_pipeline_test():
+    evens = []
+    odds = []
+    p = pipeline()
+    with p.fork(split, 'odd', 'even') as (odd, even):
+        even.connect(
+            multiply.params(10),
+            collect.params(evens)
+        )
+        odd.connect(
+            add.params(10),
+            collect.params(odds)
+        )
+    p.feed([1, 2, 3, 4])
+    tools.eq_(evens, [20, 40])
+    tools.eq_(odds, [11, 13])
+
+
 def plugged_pipeline_test():
     result = []
     null = []

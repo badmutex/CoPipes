@@ -69,7 +69,7 @@ def broadcast(*channels):
 
 
 @coroutine
-def split(selector, *channels):
+def split(selector, **channels):
     while True:
         record = yield
         channel = selector(record)
@@ -114,9 +114,9 @@ if __name__ == '__main__':
         filter.params(lambda r: r.level != 'DEBUG'),
     )
     with p.fork(broadcast, 2) as (modules, errors):
-        module_names = ('first', 'second', 'third')
-        selector = split.params(lambda r: module_names.index(r.module))
-        with modules.fork(selector, 3) as (first, second, third):
+        module_names = ()
+        with modules.fork(split.params(lambda r: r.module),
+                         'first', 'second', 'third') as (first, second, third):
             first.connect(save.params(first_log))
             second.connect(save.params(second_log))
             third.connect(save.params(third_log))
