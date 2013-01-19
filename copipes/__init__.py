@@ -261,7 +261,12 @@ class pipeline(object):
     @contextmanager
     def fork(self, worker, *pipes):
         """
-        Connect to pipeline forked coroutine.
+        Connect to pipeline forked coroutine.  The method is a context manager.
+        The first argument is a coroutine.  If the second one is a number, then
+        this number of pipelines will be created and passed to coroutine as
+        positional arguments during initialization.  If the second argument and
+        next ones are strings, then coroutine will be initialized using
+        keyword arguments.
 
         Examples:
 
@@ -285,6 +290,7 @@ class pipeline(object):
             >>> odds = []
             >>> p = pipeline()
             >>> with p.fork(split, 2) as (even, odd):
+            ...     # ``p.fork(split, 'even', 'odd')`` is also correct
             ...     even.connect(collect.params(evens))
             ...     odd.connect(collect.params(odds))
 
