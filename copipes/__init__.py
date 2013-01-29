@@ -73,7 +73,7 @@ class coroutine(object):
     """
     Decorator turns callable to coroutine.
 
-    Examples::
+    Examples:
 
     ..  code-block:: pycon
 
@@ -203,6 +203,7 @@ class pipeline(object):
     Pipeline also provides a readable representation, which is useful in debug:
 
     ..  code-block:: pycon
+
         >>> p
         increment
         collect.params([2, 3, 4])

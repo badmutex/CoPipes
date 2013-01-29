@@ -3,6 +3,7 @@ syntax: glob
 build
 dist
 manage
+docs/_build
 *.egg-info
 *.pyc
 *.sublime-*
