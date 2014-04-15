@@ -217,7 +217,7 @@ class pipeline(object):
     def __call__(self, next=null):
         """ Returns initialized coroutine pipeline """
         for worker in reversed(self.pipe):
-            next = worker(next)
+            next = worker(next=next)
         return next
 
     def __repr__(self):
