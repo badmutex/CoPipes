@@ -6,7 +6,7 @@ import functools
 import inspect
 import textwrap
 
-macros = Macros()
+__all__ = ['pipe']
 
 def debug_print_ast(tree, **kws):
     """Print the AST"""
