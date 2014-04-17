@@ -15,6 +15,7 @@ def make_pipe(fn):
 
 @pipe
 def putStrLn():
+    """doc"""
     [x]
     print x
     send(x)
