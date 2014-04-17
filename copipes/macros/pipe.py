@@ -8,7 +8,6 @@ import textwrap
 
 macros = Macros()
 
-@macros.decorator
 def debug_print_ast(tree, **kws):
     """Print the AST"""
     @Walker
@@ -18,7 +17,6 @@ def debug_print_ast(tree, **kws):
     print_node.recurse(tree)
     return tree
 
-@macros.decorator
 def debug_print_src(tree, **kws):
     """Print the python code for the AST"""
     print unparse(tree).strip()
