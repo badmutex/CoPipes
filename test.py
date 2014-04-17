@@ -1,9 +1,6 @@
 from copipes import coroutine, pipeline, null
 from copipes.macros.pipe import pipe
-from functools import wraps
-import inspect
-import ast
-from macropy.core import real_repr
+
 
 
 def make_pipe(fn):
@@ -16,13 +13,13 @@ def make_pipe(fn):
 
     return wrapper
 
-@make_pipe
+@pipe
 def putStrLn():
     [x]
     print x
     send(x)
 
-@make_pipe
+@pipe
 def replicate(n):
     [x]
     for i in xrange(n):

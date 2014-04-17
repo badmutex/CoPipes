@@ -1,4 +1,6 @@
 from macropy.core.macros import *
+from copipes import coroutine, null
+
 import copy
 import functools
 import inspect
@@ -110,7 +112,7 @@ def rewrite_function(func, remove=None):
     debug_print_src(new_func)
     return new_func
 
-def pipe(fn, remove=None):
+def rewrite(fn, remove_decorators=None):
     src = inspect.getsource(fn)
     src = textwrap.dedent(src)
     loc = inspect.getsourcefile(fn)
@@ -122,16 +124,15 @@ def pipe(fn, remove=None):
         stmts = tree.body
         assert len(stmts) == 1
         func = stmts[0]
-        new_tree = rewrite_function(func, remove=remove)
+        new_tree = rewrite_function(func, remove=remove_decorators)
     elif type(tree) is FunctionDef:
-        new_tree = rewrite_function(tree, remove=remove)
+        new_tree = rewrite_function(tree, remove=remove_decorators)
     else:
         raise ValueError, 'No handler for rewriting %s' % (type(tree),)
 
     fix_missing_locations(new_tree)
     new_src = unparse(new_tree).strip()
 
-    from copipes import coroutine, null
     mylocals = dict(coroutine=coroutine, null=null)
     myglobals = {}
     exec new_src in myglobals, mylocals
@@ -139,3 +140,26 @@ def pipe(fn, remove=None):
     return new_func
 
 
+def pipe(fn):
+    """
+    Rewrite the function definition to allow cleaner syntax for defining coroutines as `pipe`s.
+
+    Eg:
+    @coroutine
+    def putStrLn(next=null):
+        while True:
+            v = yield
+            print v
+            next.send(v)
+
+    becomes
+
+    @pipe
+    def putStrLn():
+        [x]
+        print x
+        send(x)
+    """
+
+    new_fn = rewrite(fn, remove_decorators=['pipe'])
+    return coroutine(new_fn)
