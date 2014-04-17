@@ -110,7 +110,6 @@ def rewrite__function_decorators(decorator_list, to_remove=None):
     return decorators
 
 def rewrite_function(func, remove=None):
-    print 20*'='
     next_ident = 'next'
     new_args   = rewrite_args(func.args, next=next_ident)
     new_body   = rewrite_body(func.body, next=next_ident)
@@ -120,9 +119,6 @@ def rewrite_function(func, remove=None):
                              body=new_body,
                              decorator_list=new_decs,
                             )
-    debug_print_src(func)
-    print 20*'^'
-    debug_print_src(new_func)
     return new_func
 
 def rewrite(fn, remove_decorators=None):
@@ -130,8 +126,6 @@ def rewrite(fn, remove_decorators=None):
     src = textwrap.dedent(src)
     loc = inspect.getsourcefile(fn)
     tree = ast.parse(src)
-
-    print real_repr(tree)
 
     if type(tree) is Module:
         stmts = tree.body
