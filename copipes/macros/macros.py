@@ -1,5 +1,8 @@
 from macropy.core.macros import *
 import copy
+import functools
+import inspect
+import textwrap
 
 macros = Macros()
 
@@ -83,24 +86,56 @@ def rewrite_body(body, next='next'):
     loop     = rewrite__create_while_loop(new_body)
     return [loop]
 
-def rewrite(tree):
+def rewrite__function_decorators(decorator_list, to_remove=None):
+    to_remove = to_remove or []
+    decorators = []
+    for dec in decorator_list:
+        if dec.id in to_remove: continue
+        decorators.append(dec)
+    return decorators
+
+def rewrite_function(func, remove=None):
     print 20*'='
-    func = tree
     next_ident = 'next'
     new_args   = rewrite_args(func.args, next=next_ident)
     new_body   = rewrite_body(func.body, next=next_ident)
-    new_decs   = copy.copy(func.decorator_list) + [Name('coroutine', Load())]
+    new_decs   = rewrite__function_decorators(func.decorator_list, to_remove=remove)
     new_func   = FunctionDef(name=func.name,
                              args=new_args,
                              body=new_body,
                              decorator_list=new_decs,
                             )
-    debug_print_src(tree)
+    debug_print_src(func)
     print 20*'^'
     debug_print_src(new_func)
     return new_func
 
+def pipe(fn, remove=None):
+    src = inspect.getsource(fn)
+    src = textwrap.dedent(src)
+    loc = inspect.getsourcefile(fn)
+    tree = ast.parse(src)
 
-@macros.decorator
-def pipe(tree, **kws):
-    return rewrite(tree)
+    print real_repr(tree)
+
+    if type(tree) is Module:
+        stmts = tree.body
+        assert len(stmts) == 1
+        func = stmts[0]
+        new_tree = rewrite_function(func, remove=remove)
+    elif type(tree) is FunctionDef:
+        new_tree = rewrite_function(tree, remove=remove)
+    else:
+        raise ValueError, 'No handler for rewriting %s' % (type(tree),)
+
+    fix_missing_locations(new_tree)
+    new_src = unparse(new_tree).strip()
+
+    from copipes import coroutine, null
+    mylocals = dict(coroutine=coroutine, null=null)
+    myglobals = {}
+    exec new_src in myglobals, mylocals
+    new_func = mylocals[fn.__name__]
+    return new_func
+
+
