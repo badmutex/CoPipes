@@ -81,12 +81,27 @@ def rewrite_args(args, next='next'):
 
 def rewrite_body(body, next='next'):
     new_body = copy.deepcopy(body)
-    idents   = new_body.pop(0).value.elts
-    recvs    = rewrite__create_recvs(idents)
-    new_body = recvs + new_body
-    new_body = rewrite__expand_send(next, new_body)
-    loop     = rewrite__create_while_loop(new_body)
-    return [loop]
+    # get the first occurence of a List expression: these are the parameters sent to this coroutine
+    for i, stmt in enumerate(new_body):
+        if type(stmt.value) is not List: continue
+        left = new_body[:i]
+        right = new_body[i:]
+        idents   = right.pop(0).value.elts
+        recvs    = rewrite__create_recvs(idents)
+        new_body = left + recvs + right
+        new_body = rewrite__expand_send(next, new_body)
+        loop     = rewrite__create_while_loop(new_body)
+        return [loop]
+    msg = textwrap.dedent("""\
+               Could not find coroutine input parameters in definition body:
+               %s
+               Make sure that the body is of the form:
+               def function(*args, **kws):
+                   "doc"   # optional
+                   [x,y,z] # input parameters
+                   # rest of the body
+               """)
+    raise Exception(msg % unparse(body))
 
 def rewrite__function_decorators(decorator_list, to_remove=None):
     to_remove = to_remove or []
