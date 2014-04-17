@@ -1,5 +1,5 @@
 from copipes import coroutine, pipeline, null
-from copipes.macros import macros
+from copipes.macros.pipe import pipe
 from functools import wraps
 import inspect
 import ast
@@ -7,7 +7,7 @@ from macropy.core import real_repr
 
 
 def make_pipe(fn):
-    new_fn = macros.pipe(fn, remove=['make_pipe'])
+    new_fn = pipe(fn, remove=['make_pipe'])
 
     @wraps(new_fn)
     @coroutine
