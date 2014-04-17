@@ -177,4 +177,5 @@ def pipe(fn):
     """
 
     new_fn = rewrite(fn, remove_decorators=['pipe'])
+    new_fn = functools.wraps(fn)(new_fn)
     return coroutine(new_fn)

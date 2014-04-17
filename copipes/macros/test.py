@@ -30,12 +30,6 @@ def split(even, odd):
     next.send(x)
 
 @pipe
-def putStrLn():
-    [x]
-    print x
-    send(x)
-
-@pipe
 def replicate(n):
     [x]
     for i in xrange(n):
@@ -52,10 +46,8 @@ def null_test():
 
 def coroutine_preserves_name_and_docstring_test():
     tools.eq_(add.__name__, 'add')
-    tools.eq_(add.__doc__, ' Adds specified ``value`` to each'
-                           ' item passed to pipeline ')
+    tools.eq_(add.__doc__, 'Adds specified ``value`` to each item passed to pipeline')
     tools.eq_(repr(add), 'add')
-
 
 def parametrized_coroutine_test():
     add_5 = add.params(5)
@@ -86,6 +78,15 @@ def straight_forward_pipeline_test():
     )
     p.feed([1, 2, 3, 4])
     tools.eq_(result, [16, 26, 36, 46])
+
+def replication_pipeline_test():
+    result = []
+    p = pipeline(
+        replicate.params(2),
+        collect.params(result),
+        )
+    p.feed([1,2,3,4])
+    tools.eq_(result, [1,1,2,2,3,3,4,4])
 
 
 def forked_pipeline_test():
